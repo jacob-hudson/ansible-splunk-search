@@ -1,0 +1,38 @@
+---
+  - set_fact:
+      user: 'username'
+      pw: 'password'
+      host: 'hostname:8089'
+      endpoint: '/services/auth/login'
+
+  - name: Get Session Key
+    uri:
+      url: "{{ host }}{{ endpoint }}"
+      method: POST
+      body: 'username={{ user }}&password={{ pw }}'
+      user: "{{ user }}"
+      password: "{{ pw }}"
+      validate_certs: False
+      headers:
+          Content-Type: 'application/x-www-form-urlencoded'
+      return_content: yes
+    register: session_key_xml
+
+  - set_fact:
+      session_key: "{{ session_key_xml.content | striptags }}"
+      endpoint: '/services/search/jobs'
+      search: 'search query here, it either has to start with search or |'
+
+  - name: Run search
+    uri:
+      url: "{{ host }}{{ endpoint }}"
+      method: POST
+      body: 'search={{search}}'
+      user: "{{ user }}"
+      password: "{{ pw }}"
+      validate_certs: False
+      headers:
+          Content-Type: 'application/x-www-form-urlencoded'
+          Authorization: 'Splunk {{ session_key }}'
+      return_content: yes
+      status_code: 201
